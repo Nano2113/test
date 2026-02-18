@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Тест по Python</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="container">
+    <h1>Тест по Python</h1>
+    <form id="quizForm">
+      <label>Имя ученика
+        <input type="text" name="studentName" required>
+      </label>
+      <label>Класс/группа
+        <input type="text" name="studentClass" required>
+      </label>
+
+      <div id="questions"></div>
+      <button type="submit">Отправить</button>
+    </form>
+
+    <div id="status"></div>
+  </main>
+
+<script>
+const API_URL = "https://test-theta-henna-25.vercel.app/api/submit";
+
+const questions = [
+{q:`1) Ввод/вывод\nname = input()\nprint('Hello,', name)`},
+{q:`2) print(2 + 3 * 4)`},
+{q:`3) print(7 / 2)\nprint(7 // 2)`},
+{q:`4) print(10 % 3)`},
+{q:`5) print(2 ** 3)`},
+{q:`6) print(5 > 3)\nprint(5 == 5)`},
+{q:`7) print(True and False)\nprint(not False)`},
+{q:`8) x = 5\nx += 3\nprint(x)`},
+{q:`9) if 3 > 2: print('A') else: print('B')`},
+{q:`10) if 1 > 2: print(1) elif 2 > 1: print(2) else: print(3)`},
+{q:`11) for c in 'ab': print(c)`},
+{q:`12) for i in [0,1,2]: print(i)`},
+{q:`13) while i < 3: print(i)`},
+{q:`14) break example`},
+{q:`15) nested loops`}
+];
+
+const qContainer = document.getElementById('questions');
+questions.forEach((item, idx) => {
+  const div = document.createElement('div');
+  div.className = 'question';
+  div.innerHTML = `<label><strong>Вопрос ${idx+1}</strong><pre>${item.q}</pre></label>`;
+  const ta = document.createElement('textarea');
+  ta.name = `q${idx+1}`;
+  ta.rows = 3;
+  ta.required = true;
+  div.appendChild(ta);
+  qContainer.appendChild(div);
+});
+
+document.getElementById('quizForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const form = e.target;
+  const data = {
+    studentName: form.studentName.value,
+    studentClass: form.studentClass.value,
+    answers: {}
+  };
+
+  for (let i=1;i<=questions.length;i++)
+    data.answers['q'+i] = form['q'+i].value.trim();
+
+  const status = document.getElementById('status');
+  status.textContent = "Отправляю...";
+
+  try {
+    const resp = await fetch(API_URL, {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(data)
+    });
+
+    if (resp.ok) {
+      status.textContent = "✅ Отправлено!";
+      form.reset();
+    } else {
+      const txt = await resp.text();
+      status.textContent = "Ошибка сервера: " + txt;
+    }
+
+  } catch(err) {
+    status.textContent = "Ошибка соединения: " + err.message;
+  }
+});
+</script>
+</body>
+</html>
+
