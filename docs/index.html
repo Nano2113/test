@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Тест по Python — одностраничный сайт</title>
+  <title>Тест по Python</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -18,87 +18,84 @@
       </label>
 
       <div id="questions"></div>
-
       <button type="submit">Отправить</button>
     </form>
+
     <div id="status"></div>
   </main>
 
-  <script>
-  const questions = [
-    {q: `1) Ввод/вывод\nНапишите что выведет код:\nname = input()\nprint('Hello,', name)`},
-    {q: `2) Арифметические операторы\nЧто выведет:\nprint(2 + 3 * 4)`},
-    {q: `3) Деление и целая часть\nЧто выведет:\nprint(7 / 2)\nprint(7 // 2)`},
-    {q: `4) Остаток от деления\nЧто выведет:\nprint(10 % 3)`},
-    {q: `5) Возведение в степень\nЧто выведет:\nprint(2 ** 3)`},
-    {q: `6) Операторы сравнения\nЧто выведет:\nprint(5 > 3)\nprint(5 == 5)`},
-    {q: `7) Логические операторы\nЧто выведет:\nprint(True and False)\nprint(not False)`},
-    {q: `8) Присваивание и комбинированные операторы\nЧто выведет:\nx = 5\nx += 3\nprint(x)`},
-    {q: `9) Условные операторы\nЧто выведет:\nif 3 > 2:\n    print('A')\nelse:\n    print('B')`},
-    {q: `10) if/elif/else\nЧто выведет:\nif 1 > 2:\n    print(1)\nelif 2 > 1:\n    print(2)\nelse:\n    print(3)`},
-    {q: `11) Цикл for (строки)\nЧто выведет:\nfor c in 'ab':\n    print(c)`},
-    {q: `12) Цикл for (список)\nЧто выведет:\nfor i in [0,1,2]:\n    print(i)`},
-    {q: `13) Цикл while\nЧто выведет:\ni = 0\nwhile i < 3:\n    print(i)\n    i += 1`},
-    {q: `14) break/continue\nЧто выведет:\nfor i in range(5):\n    if i == 2:\n        break\n    print(i)`},
-    {q: `15) Вложенные условия и циклы\nЧто выведет:\nfor i in range(2):\n    for j in range(2):\n        print(i, j)`}
-  ];
+<script>
+const API_URL = "https://test-theta-henna-25.vercel.app/api/submit";
 
-  const qContainer = document.getElementById('questions');
-  questions.forEach((item, idx) => {
-    const div = document.createElement('div');
-    div.className = 'question';
-    const label = document.createElement('label');
-    label.innerHTML = `<strong>Вопрос ${idx+1}</strong><pre>${item.q}</pre>`;
-    const ta = document.createElement('textarea');
-    ta.name = `q${idx+1}`;
-    ta.rows = 3;
-    ta.required = true;
-    div.appendChild(label);
-    div.appendChild(ta);
-    qContainer.appendChild(div);
-  });
+const questions = [
+{q:`1) Ввод/вывод\nname = input()\nprint('Hello,', name)`},
+{q:`2) print(2 + 3 * 4)`},
+{q:`3) print(7 / 2)\nprint(7 // 2)`},
+{q:`4) print(10 % 3)`},
+{q:`5) print(2 ** 3)`},
+{q:`6) print(5 > 3)\nprint(5 == 5)`},
+{q:`7) print(True and False)\nprint(not False)`},
+{q:`8) x = 5\nx += 3\nprint(x)`},
+{q:`9) if 3 > 2: print('A') else: print('B')`},
+{q:`10) if 1 > 2: print(1) elif 2 > 1: print(2) else: print(3)`},
+{q:`11) for c in 'ab': print(c)`},
+{q:`12) for i in [0,1,2]: print(i)`},
+{q:`13) while i < 3: print(i)`},
+{q:`14) break example`},
+{q:`15) nested loops`}
+];
 
-  document.getElementById('quizForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const form = e.target;
-    const data = {studentName: form.studentName.value, studentClass: form.studentClass.value, answers: {}};
-    for (let i=1;i<=questions.length;i++) data.answers['q'+i] = form['q'+i].value.trim();
+const qContainer = document.getElementById('questions');
+questions.forEach((item, idx) => {
+  const div = document.createElement('div');
+  div.className = 'question';
+  div.innerHTML = `<label><strong>Вопрос ${idx+1}</strong><pre>${item.q}</pre></label>`;
+  const ta = document.createElement('textarea');
+  ta.name = `q${idx+1}`;
+  ta.rows = 3;
+  ta.required = true;
+  div.appendChild(ta);
+  qContainer.appendChild(div);
+});
 
-    document.getElementById('status').textContent = 'Отправляю...';
+document.getElementById('quizForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
 
-    try {
-      // Try serverless endpoint first (Vercel/Netlify). If unavailable, fall back to legacy /submit.
-      let resp = await fetch('https://test-theta-henna-25.vercel.app/api/submit', {
-        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data)
-      }).catch(() => null);
+  const form = e.target;
+  const data = {
+    studentName: form.studentName.value,
+    studentClass: form.studentClass.value,
+    answers: {}
+  };
 
-      // If endpoint missing or Method Not Allowed, try legacy /submit (Express local server)
-      if (!resp || resp.status === 404 || resp.status === 405) {
-        resp = await fetch('/submit', {
-          method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data)
-        }).catch(() => null);
-      }
+  for (let i=1;i<=questions.length;i++)
+    data.answers['q'+i] = form['q'+i].value.trim();
 
-      if (!resp) {
-        document.getElementById('status').textContent = 'Ошибка отправки: не удалось связаться с сервером';
-        return;
-      }
+  const status = document.getElementById('status');
+  status.textContent = "Отправляю...";
 
-      const respText = await resp.text();
-      let json = null;
-      try { if (respText) json = JSON.parse(respText); } catch(e) { json = null; }
+  try {
+    const resp = await fetch(API_URL, {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(data)
+    });
 
-      if (resp.ok) {
-        document.getElementById('status').textContent = 'Отправлено!';
-      } else {
-        const errMsg = (json && json.error) ? json.error : (resp.statusText || respText || 'Unknown error');
-        document.getElementById('status').textContent = 'Ошибка: ' + errMsg;
-      }
-    } catch (err) {
-      document.getElementById('status').textContent = 'Ошибка отправки: ' + err.message;
+    if (resp.ok) {
+      status.textContent = "✅ Отправлено!";
+      form.reset();
+    } else {
+      const txt = await resp.text();
+      status.textContent = "Ошибка сервера: " + txt;
     }
-  });
-  </script>
+
+  } catch(err) {
+    status.textContent = "Ошибка соединения: " + err.message;
+  }
+});
+</script>
 </body>
 </html>
+
+
 
