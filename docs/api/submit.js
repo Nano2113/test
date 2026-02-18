@@ -1,45 +1,52 @@
-// Serverless function compatible with Vercel/Netlify (Node 18+ runtime with global fetch)
-// Configure BOT_TOKEN and CHAT_ID as environment variables in hosting (do NOT commit them publicly)
-
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Method Not Allowed' });
-    return;
-  }
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
 
   try {
-    const body = req.body;
-    if (!body || !body.studentName) return res.status(400).json({error: 'Invalid payload'});
+    // 🔴 ВАЖНО: правильно читаем body в Vercel
+    const buffers = [];
+    for await (const chunk of req) {
+      buffers.push(chunk);
+    }
+    const body = JSON.parse(Buffer.concat(buffers).toString());
 
-    // Prefer environment variables (secure), but allow using local `secrets.js` for quick testing.
-    let BOT_TOKEN = process.env.BOT_TOKEN || '';
-    let CHAT_ID = process.env.CHAT_ID || '';
-    try {
-      const secrets = await import('../secrets.js');
-      BOT_TOKEN = BOT_TOKEN || (secrets && secrets.BOT_TOKEN) || '';
-      CHAT_ID = CHAT_ID || (secrets && secrets.CHAT_ID) || '';
-    } catch (e) {
-      // If secrets.js is missing, ignore — rely on env vars.
+    const BOT_TOKEN = process.env.BOT_TOKEN;
+    const CHAT_ID = process.env.CHAT_ID;
+
+    if (!BOT_TOKEN || !CHAT_ID) {
+      return res.status(500).json({ error: "Env variables missing" });
     }
 
-    let message = `Ученик: ${body.studentName}\nКласс: ${body.studentClass}\n\n`;
-    const answers = body.answers || {};
-    Object.keys(answers).sort().forEach(k => {
-      message += `${k}: ${answers[k]}\n`;
+    let text = `📚 НОВЫЙ ТЕСТ\n\n`;
+    text += `👤 Ученик: ${body.studentName}\n`;
+    text += `🏫 Класс: ${body.studentClass}\n\n`;
+
+    Object.entries(body.answers).forEach(([q, ans]) => {
+      text += `${q.toUpperCase()}:\n${ans}\n\n`;
     });
 
-    if (!BOT_TOKEN || !CHAT_ID) return res.status(500).json({error: 'Server not configured with BOT_TOKEN/CHAT_ID'});
-
-    const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
-    const resp = await fetch(url, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({chat_id: CHAT_ID, text: message})
+    const tg = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        chat_id: CHAT_ID,
+        text: text
+      })
     });
-    const data = await resp.json();
-    if (!data.ok) return res.status(502).json({error: 'Telegram API error', details: data});
-    res.status(200).json({ok: true});
+
+    const tgData = await tg.json();
+
+    if (!tgData.ok) {
+      return res.status(500).json({ error: "Telegram error", tgData });
+    }
+
+    return res.status(200).json({ ok: true });
+
   } catch (err) {
-    res.status(500).json({error: err.message});
+    return res.status(500).json({ error: err.message });
   }
 }
