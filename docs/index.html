@@ -68,7 +68,7 @@
 
     try {
       // Try serverless endpoint first (Vercel/Netlify). If unavailable, fall back to legacy /submit.
-      let resp = await fetch('/api/submit', {
+      let resp = await fetch('https://test-theta-henna-25.vercel.app/api/submit', {
         method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data)
       }).catch(() => null);
 
@@ -101,3 +101,4 @@
   </script>
 </body>
 </html>
+
